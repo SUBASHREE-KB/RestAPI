@@ -4,10 +4,8 @@ namespace LoginApi.Models
 {
     public class user
     {
+       
         [Key]
-        public int id { get; set; }
-
-        [Required]
         [MaxLength(50)]
         public string? username { get; set; }
 

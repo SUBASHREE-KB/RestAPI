@@ -15,13 +15,23 @@ namespace LoginApi.Controllers
         {
             _context = context;
         }
-        [HttpGet]
-        public IActionResult Login()
+        [HttpGet("{username}")]
+        public IActionResult GetUserByUsername(string username)
         {
             try
             {
-                    // User is authenticated
-                    return Ok("Login successful!");
+                var user = _context.users.FirstOrDefault(u => u.username == username);
+
+                if (user != null)
+                {
+                    // User found, return the user details
+                    return Ok(user);
+                }
+                else
+                {
+                    // User not found
+                    return NotFound("User not found");
+                }
             }
             catch (Exception ex)
             {
@@ -34,17 +44,96 @@ namespace LoginApi.Controllers
         {
             try
             {
-                var existingUser = _context.users.FirstOrDefault(u => u.username == user.username && u.password == user.password);
+                var existingUser = _context.users.FirstOrDefault(u => u.username == user.username);
 
                 if (existingUser != null)
                 {
-                    // User is authenticated
-                    return Ok("Login successful!");
+                    // User already exists, check if the password is correct
+                    if (existingUser.password == user.password)
+                    {
+                        // User is authenticated
+                        return Ok("Login successful!");
+                    }
+                    else
+                    {
+                        // Incorrect password
+                        return NotFound("Incorrect password");
+                    }
                 }
                 else
                 {
-                    // User not found or invalid credentials
-                    return NotFound("Login Unsuccessful");
+                    // User doesn't exist, create a new user
+                    var newUser = new user
+                    {
+                        username = user.username,
+                        password = user.password
+                    };
+
+                    _context.users.Add(newUser);
+                    _context.SaveChanges();
+
+                    return Ok("User created and logged in successfully!");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle any exceptions here
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
+
+        public class UpdatePasswordRequest
+        {
+            public string? NewPassword { get; set; }
+        }
+
+        [HttpPatch("{username}")]
+        public IActionResult UpdatePassword(string username, [FromBody] UpdatePasswordRequest newPasswordRequest)
+        {
+            try
+            {
+                var existingUser = _context.users.FirstOrDefault(u => u.username == username);
+
+                if (existingUser != null)
+                {
+                    // Update the password
+                    existingUser.password = newPasswordRequest.NewPassword;
+                    _context.SaveChanges();
+
+                    return Ok("Password updated successfully");
+                }
+                else
+                {
+                    // User not found
+                    return NotFound("User not found");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle any exceptions here
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("{username}")]
+        public IActionResult DeleteUser(string username)
+        {
+            try
+            {
+                var existingUser = _context.users.FirstOrDefault(u => u.username == username);
+
+                if (existingUser != null)
+                {
+                    // Remove the user from the context and save changes
+                    _context.users.Remove(existingUser);
+                    _context.SaveChanges();
+
+                    return Ok("User deleted successfully");
+                }
+                else
+                {
+                    // User not found
+                    return NotFound("User not found");
                 }
             }
             catch (Exception ex)
